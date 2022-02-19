@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CRS.Simple example - Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <script src="js/coords.js"></script>
+
+    <script src="https://unpkg.com/rbush@3.0.1/rbush.js"></script>
+    <script src="js/leaflet-markers-canvas.js"></script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            background-color: #545454;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+            color: white
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+            color: white;
+            text-decoration: none;
+        }
+
+        @media screen and (max-height: 450px) {
+            .sidenav {
+                padding-top: 15px;
+            }
+
+            .sidenav a {
+                font-size: 18px;
+            }
+        }
+
+        #menubutton {
+            position: fixed;
+            z-index: 500;
+            top: 20px;
+            left: 20px;
+        }
+
+        .cat-item {
+            padding: 20px;
+            border: 1px solid white;
+            margin: 3px;
+            cursor: pointer;
+        }
+
+        #categories {
+            grid-template-columns: 33% 33% 33%;
+            display: grid;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #coords {
+            position: fixed;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background-color: wheat;
+        }
+
+        .leaflet-container {
+            background-color: #91d5e4;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="coords">123</div>
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <div id="categories"></div>
+        <div id="subcat"></div>
+    </div>
+    <div id="menubutton" style="font-size:30px;cursor:pointer" onclick="openNav()">Menu</div>
+
+    <div id='map'></div>
+    <script>
+
+        const categories = document.getElementById("categories")
+        const subcat = document.getElementById("subcat")
+        const coords = document.getElementById("coords")
+
+        const mainData = {
+            data: {},
+            markers: []
+        };
+        const img = [
+            63900,  // original width of image 
+            63900   // original height of image
+        ]
+        const offset = {
+            x: 0,
+            y: 0
+        }
+        // create the map
+        var map = L.map('map', {
+            crs: L.CRS.Simple,
+            maxZoom: 8,
+            zoomControl: false,
+            preferCanvas: true
+        })
+
+        var markersCanvas = new L.MarkersCanvas();
+        markersCanvas.addTo(map);
+        var icon = L.icon({
+            iconUrl: "marker.png",
+            iconSize: [20, 32],
+            iconAnchor: [10, 32],
+        });
+
+        // assign map and image dimensions
+        var rc = new L.RasterCoords(map, img)
+        map.setView(rc.unproject([img[0] / 2, img[1] / 2]), 2)
+        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', { noWrap: true, preferCanvas: true }).addTo(map)
+
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        map.on("mousemove", e => {
+            const c = rc.project(e.latlng);
+            const { x, y } = c
+            const cx = x + offset.x
+            const cy = - y - offset.y
+            coords.innerHTML = `[${cx} | ${cy}]`
+        })
+        /*
+                fetch(`markers.json?time=1637666307331`)
+                    .then(d => d.json())
+                    .then(m => {
+                        console.log('m', m);
+                        mainData.data = m
+                        buildCheckboxes(mainData.data)
+                    })
+        
+                function buildCheckboxes(data) {
+                    const categories = Object.entries(data).map(i => i[0]);
+                    buildCategiries(categories)
+                    openNav()
+                }
+        */
+
+        function buildCategiries(data) {
+            console.log('data', data);
+            const cats = data.map(i => {
+                const button = buildButton(i, e => { buildCatContent(i) })
+                categories.appendChild(button)
+            })
+        }
+
+        function buildCatContent(group) {
+            console.log('buildCatContent', group);
+            const cat = mainData.data[group]
+            subcat.replaceChildren()
+
+
+            console.log('mainData.data[group]', mainData.data[group]);
+            const selectAllChecked = Object.values(mainData.data[group]).some(i => i?.checked)
+
+            const selectAll = buildCheckBoxes("Select all", group + "_all", selectAllChecked, function (e) {
+                const boxes = Array.from(document.querySelectorAll(`[name=${group}]`))
+                if (boxes.some(b => !b.checked)) {
+                    boxes.forEach(b => {
+                        if (!b.checked) b.click()
+                    })
+                    this.checked = true;
+                } else {
+                    boxes.forEach(b => b.click())
+                }
+            })
+
+            subcat.appendChild(selectAll)
+
+            Object.entries(cat).forEach(p => {
+                console.log('p', p);
+                const name = p[0]
+                const boxChecked = mainData.data[group][name]?.checked || false
+                const box = buildCheckBoxes(name, group, boxChecked, function (e) {
+                    const id = group + "_" + name;
+                    const pins = mainData.data[group][name]
+                    pins['checked'] = this.checked
+                    if (this.checked) {
+                        buildPins(pins, id)
+                    } else {
+                        removePins(id)
+                    }
+                })
+                subcat.appendChild(box)
+            })
+        }
+
+        function buildCheckBoxes(name, group, checked, click) {
+            const div = document.createElement("div")
+            var checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.name = group;
+            checkbox.value = name;
+            checkbox.id = group + name;
+
+            console.log('->', group, name);
+            checkbox.checked = checked
+
+            var label = document.createElement('label')
+            label.htmlFor = group + name;
+            label.appendChild(document.createTextNode(name));
+
+            checkbox.addEventListener("input", click)
+
+            div.appendChild(checkbox);
+            div.appendChild(label);
+
+            // div.addEventListener("click", click)
+            return div;
+        }
+
+        function removePins(id) {
+            // mainData.markers
+            //     .filter(m => m.options.id === id)
+            //     .forEach((m, index) => {
+            //         markersCanvas.removeMarker(m)
+            //     })
+            // mainData.markers = mainData.markers.filter(m => m.options.id !== id)
+            // markersCanvas.redraw()
+
+            const removeMarkers = mainData.markers.filter(m => m.options.id === id)
+            markersCanvas.removeMarkers(removeMarkers)
+
+            mainData.markers = mainData.markers.filter(m => m.options.id !== id)
+            markersCanvas.redraw()
+        }
+
+        function buildPins(pins, id) {
+            const markers = [];
+            Object.entries(pins).forEach(p => {
+                const coords = p[1]
+                if (coords.x) {
+                    const { x, y } = coords
+                    const cx = x - offset.x
+                    const cy = 14336 - y - offset.y
+                    var marker = L.marker(rc.unproject([cx, cy]), {
+                        icon: icon,
+                        id: id
+                    }).bindPopup(id);
+                    markers.push(marker)
+                }
+            })
+
+            markersCanvas.addMarkers(markers);
+            mainData.markers.push(...markers)
+        }
+
+        function buildButton(name, click) {
+            const div = document.createElement("div")
+            div.className = "cat-item";
+            div.innerText = name;
+            div.addEventListener("click", click)
+            return div;
+        }
+
+
+        function openNav() {
+            document.getElementById("mySidenav").style.width = "350px";
+        }
+
+        function closeNav() {
+            document.getElementById("mySidenav").style.width = "0";
+        }
+    </script>
+</body>
+
+</html>
