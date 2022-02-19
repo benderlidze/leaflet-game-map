@@ -128,13 +128,21 @@
             x: 0,
             y: 0
         }
+
+
+
         // create the map
         var map = L.map('map', {
             crs: L.CRS.Simple,
             maxZoom: 8,
             zoomControl: false,
-            preferCanvas: true
+            preferCanvas: true,
+            noWrap: true
         })
+
+        var mapBounds = new L.LatLngBounds(
+            map.unproject([1, 63900], 8),
+            map.unproject([63900, 1], 8));
 
         var markersCanvas = new L.MarkersCanvas();
         markersCanvas.addTo(map);
@@ -147,7 +155,11 @@
         // assign map and image dimensions
         var rc = new L.RasterCoords(map, img)
         map.setView(rc.unproject([img[0] / 2, img[1] / 2]), 2)
-        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', { noWrap: true, preferCanvas: true }).addTo(map)
+        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
+            noWrap: true,
+            preferCanvas: true,
+            bounds: mapBounds
+        }).addTo(map)
 
 
         L.control.zoom({ position: 'topright' }).addTo(map);
@@ -156,9 +168,13 @@
             const c = rc.project(e.latlng);
             const { x, y } = c
             const cx = x + offset.x
-            const cy = - y - offset.y
+            const cy = y + offset.y
             coords.innerHTML = `[${cx} | ${cy}]`
         })
+
+        var marker = L.marker(rc.unproject([900, 900]), {
+        }).bindPopup("Text").addTo(map)
+      
         /*
                 fetch(`markers.json?time=1637666307331`)
                     .then(d => d.json())
