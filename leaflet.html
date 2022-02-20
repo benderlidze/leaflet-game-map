@@ -94,6 +94,15 @@
             background-color: wheat;
         }
 
+        #zoom {
+            position: fixed;
+            left: 50%;
+            top: 40px;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background-color: wheat;
+        }
+
         .leaflet-container {
             background-color: #91d5e4;
         }
@@ -101,7 +110,8 @@
 </head>
 
 <body>
-    <div id="coords">123</div>
+    <div id="coords"></div>
+    <div id="zoom"></div>
     <div id="mySidenav" class="sidenav">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
         <div id="categories"></div>
@@ -115,21 +125,22 @@
         const categories = document.getElementById("categories")
         const subcat = document.getElementById("subcat")
         const coords = document.getElementById("coords")
+        const zoom = document.getElementById("zoom")
+
+        const selected = [];
 
         const mainData = {
             data: {},
             markers: []
         };
-        const img = [
-            63900,  // original width of image 
-            63900   // original height of image
-        ]
+        const img = {
+            x: 63900,  // original width of image 
+            y: 63900   // original height of image
+        }
         const offset = {
             x: 0,
             y: 0
         }
-
-
 
         // create the map
         var map = L.map('map', {
@@ -153,8 +164,8 @@
         });
 
         // assign map and image dimensions
-        var rc = new L.RasterCoords(map, img)
-        map.setView(rc.unproject([img[0] / 2, img[1] / 2]), 2)
+        var rc = new L.RasterCoords(map, [img.x, img.y])
+        map.setView(rc.unproject([img.x / 2, img.y / 2]), 2)
         const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
@@ -169,27 +180,85 @@
             const { x, y } = c
             const cx = x + offset.x
             const cy = y + offset.y
-            coords.innerHTML = `[${cx} | ${cy}]`
+            coords.innerHTML = `${cx} | ${cy}`
         })
 
-        var marker = L.marker(rc.unproject([900, 900]), {
-        }).bindPopup("Text").addTo(map)
-      
-        /*
-                fetch(`markers.json?time=1637666307331`)
-                    .then(d => d.json())
-                    .then(m => {
-                        console.log('m', m);
-                        mainData.data = m
-                        buildCheckboxes(mainData.data)
-                    })
-        
-                function buildCheckboxes(data) {
-                    const categories = Object.entries(data).map(i => i[0]);
-                    buildCategiries(categories)
-                    openNav()
-                }
-        */
+        map.on("zoomend", () => {
+            zoom.innerHTML = ' zoom:' + map.getZoom()
+        })
+
+        map.on("click", e => {
+            const c = rc.project(e.latlng);
+            const { x, y } = c
+            const coords = createCoordinatesByClick([x, y])
+            drawPolygon(coords)
+
+            selected.push(createCoordinatesByClick([x, y], false))
+        })
+
+
+        drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
+        drawPolygon(createCoordinatesByClick(rowColToCoords([18, -6])))
+
+        function rowColToCoords(input) {
+            const center = {
+                x: img.x / 2, y: img.y / 2
+            }
+            const mapCoords = [
+                center.x + 900 * input[0],
+                center.y - 900 * input[1],
+            ]
+            return mapCoords
+        }
+
+        function createCoordinatesByClick([x1, y1], offset = true) {
+            const innerOffset = offset ? 20 : 0
+            const x = Math.floor(x1 / 900) * 900
+            const y = Math.floor(y1 / 900) * 900
+            return [
+                [x + innerOffset, y + innerOffset],
+                [x + 900 - innerOffset, y + innerOffset],
+                [x + 900 - innerOffset, y + 900 - innerOffset],
+                [x + innerOffset, y + 900 - innerOffset],
+                [x + innerOffset, y + innerOffset],
+            ]
+        }
+
+        drawNet()
+        function drawNet() {
+            for (let i = 0; i <= 71; i++) {
+                const coords = [
+                    [900 * i, 0],
+                    [900 * i, img.y]
+                ];
+                const unpCoords = coords.map(c => {
+                    return rc.unproject(c)
+                })
+                L.polyline(unpCoords, { weight: 1, color: '#4eb5cc' }).addTo(map);
+            }
+            for (let i = 0; i <= 71; i++) {
+                const coords = [
+                    [0, 900 * i],
+                    [img.x, 900 * i]
+                ];
+                const unpCoords = coords.map(c => {
+                    return rc.unproject(c)
+                })
+                L.polyline(unpCoords, { weight: 1, color: '#4eb5cc' }).addTo(map);
+            }
+        }
+
+        function drawPolygon(coords) {
+            const unpCoords = coords.map(c => {
+                return rc.unproject(c)
+            })
+            const polygon = L.polygon(unpCoords, {
+                color: 'white',
+                "fillOpacity": 0
+            });
+            polygon.addTo(map);
+            //map.fitBounds(polygon.getBounds());
+        }
 
         function buildCategiries(data) {
             console.log('data', data);
