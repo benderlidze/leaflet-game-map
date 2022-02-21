@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CRS.Simple example - Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <script src="js/coords.js"></script>
+
+    <script src="https://unpkg.com/rbush@3.0.1/rbush.js"></script>
+    <script src="js/leaflet-markers-canvas.js"></script>
+
+    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+    <script src="https://unpkg.com/deck.gl-leaflet@1.2.0/dist/deck.gl-leaflet.min.js"></script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            background-color: #545454;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+            color: white
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+            color: white;
+            text-decoration: none;
+        }
+
+        @media screen and (max-height: 450px) {
+            .sidenav {
+                padding-top: 15px;
+            }
+
+            .sidenav a {
+                font-size: 18px;
+            }
+        }
+
+        #menubutton {
+            position: fixed;
+            z-index: 500;
+            top: 20px;
+            left: 20px;
+        }
+
+        .cat-item {
+            padding: 20px;
+            border: 1px solid white;
+            margin: 3px;
+            cursor: pointer;
+        }
+
+        #categories {
+            grid-template-columns: 33% 33% 33%;
+            display: grid;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #coords {
+            position: fixed;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background-color: wheat;
+        }
+
+        #fetchData {
+            position: absolute;
+            z-index: 10000;
+            top: 20px;
+            left: 200px;
+        }
+
+        #clearData {
+            position: absolute;
+            z-index: 10000;
+            top: 20px;
+            left: 300px;
+        }
+
+        #zoom {
+            position: fixed;
+            left: 50%;
+            top: 40px;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background-color: wheat;
+        }
+
+        .leaflet-container {
+            background-color: #91d5e4;
+        }
+
+        .text-labels {
+            font-size: 14px;
+            color: white;
+            font-family: Helvetica, sans-serif;
+            /* Use color, background, set margins for offset, etc */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="coords"></div>
+    <div id="zoom"></div>
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <div id="categories"></div>
+        <div id="subcat"></div>
+    </div>
+    <div id="menubutton" style="font-size:30px;cursor:pointer" onclick="openNav()">Menu</div>
+    <div id='map'></div>
+    <button id="fetchData">API test</button>
+    <button id="clearData">Clear</button>
+    <script>
+
+        const categories = document.getElementById("categories")
+        const subcat = document.getElementById("subcat")
+        const coords = document.getElementById("coords")
+        const zoom = document.getElementById("zoom")
+        const fetchData = document.getElementById("fetchData")
+        const clearData = document.getElementById("clearData")
+
+        const selected = [];
+        const coordLabels = [];
+        const allPolygons = [];
+
+        const mainData = {
+            data: {},
+            markers: []
+        };
+        const img = {
+            x: 63900,  // original width of image 
+            y: 63900   // original height of image
+        }
+        const offset = {
+            x: 0,
+            y: 0
+        }
+
+        // create the map
+        var map = L.map('map', {
+            // crs: L.CRS.Simple,
+            maxZoom: 8,
+            zoomControl: false,
+            preferCanvas: true,
+            noWrap: true
+        })
+
+        var mapBounds = new L.LatLngBounds(
+            map.unproject([1, 63900], 8),
+            map.unproject([63900, 1], 8));
+
+        var markersCanvas = new L.MarkersCanvas();
+        markersCanvas.addTo(map);
+        var icon = L.icon({
+            iconUrl: "marker.png",
+            iconSize: [20, 32],
+            iconAnchor: [10, 32],
+        });
+
+        // assign map and image dimensions
+        var rc = new L.RasterCoords(map, [img.x, img.y])
+        map.setView(rc.unproject([img.x / 2, img.y / 2]), 2)
+        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
+            noWrap: true,
+            preferCanvas: true,
+            bounds: mapBounds
+        }).addTo(map)
+
+
+        //create  NET
+        const deckData = []
+        for (let x = 0; x < 71; x++) {
+            for (let y = 0; y < 71; y++) {
+
+                const x1 = x * 900
+                const y1 = y * 900
+                deckData.push([
+                    [
+                        unproject([x1, y1]),
+                        unproject([x1, y1 + 900]),
+                        unproject([x1 + 900, y1 + 900]),
+                        unproject([x1 + 900, y1]),
+                        unproject([x1, y1]),
+                    ]
+                ])
+            }
+        }
+
+        const deckNet = {
+            data: deckData,
+            getPolygon: d => d,
+            stroked: true,
+            filled: false,
+            getLineColor: [78, 181, 204],
+            getFillColor: [255, 255, 255, 150],
+            getLineWidth: 1,
+            lineWidthUnits: 'pixels',
+        }
+
+        const deckLayer = new DeckGlLeaflet.LeafletLayer({
+            views: [
+                new deck.MapView({
+                    repeat: false,
+                })
+            ],
+            layers: [new deck.PolygonLayer(deckNet)],
+        });
+
+        map.addLayer(deckLayer);
+
+
+
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        map.on("mousemove", e => {
+            const c = rc.project(e.latlng);
+            const { x, y } = c
+            const cx = x + offset.x
+            const cy = y + offset.y
+            coords.innerHTML = `${cx} | ${cy}`
+        })
+
+        map.on("zoomend", () => {
+            zoom.innerHTML = ' zoom:' + map.getZoom()
+        })
+
+        map.on("click", e => {
+            const c = rc.project(e.latlng);
+            const { x, y } = c
+            const coords = createCoordinatesByClick([x, y])
+            //drawPolygon(coords)
+            //selected.push(createCoordinatesByClick([x, y], false))
+        })
+
+        map.on("dragend zoomend", e => {
+            coordLabels.forEach(m => m.remove())
+            if (map.getZoom() > 5) {
+                drawCoordsInView()
+            }
+
+            console.log('dragend',);
+            deckLayer.setProps({
+                data: [[
+                    unproject([10, 0]),
+                    unproject([10, 5]),
+                ]]
+            })
+        })
+
+        fetchData.addEventListener("click", () => {
+            fetch("https://5yysmsvgv1.execute-api.us-east-1.amazonaws.com/staging/read_ddb?plot_type=Power%20Plant")
+                .then(data => data.json())
+                .then(data => {
+                    const json = data.body
+                    const items = json.map(d => {
+                        const attr = d.attributes
+                        const x = attr.find(i => i.trait_type === "X.Coord").value
+                        const y = attr.find(i => i.trait_type === "Y.Coord").value
+                        return { x, y }
+                    })
+                    console.log('coords', coords);
+
+                    items.forEach(item => {
+                        allPolygons.push(drawPolygon(createCoordinatesByClick(rowColToCoords([item.x, item.y])), "yellow"))
+                    })
+                })
+
+            //update FILL
+            deckLayer.setProps({
+                layers: [
+                    new deck.PolygonLayer({
+                        ...deckNet,
+                        filled: true
+                    })
+                ]
+            });
+
+        })
+        clearData.addEventListener("click", () => {
+            console.log('clear data', allPolygons);
+            allPolygons.forEach(poly => poly.remove())
+        })
+
+        //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
+        //drawPolygon(createCoordinatesByClick(rowColToCoords([18, -6])))
+        function drawCoordsInView() {
+
+            const bounds = map.getBounds();
+            const se = bounds.getSouthEast()
+            const nw = bounds.getNorthWest()
+
+            const bottom = rc.project(se);
+            const top = rc.project(nw);
+
+            const xPx = (bottom.x - top.x)
+            const yPx = (bottom.x - top.x)
+
+            const xNum = Math.floor(xPx / 900) + 1
+            const yNum = Math.floor(yPx / 900) + 1
+
+            const topX = Math.floor(top.x / 900) * 900 + 900
+            const topY = Math.floor(top.y / 900) * 900 + 900
+
+            const xyForCoords = []
+
+            for (let indexX = 0; indexX < xNum; indexX++) {
+                for (let indexY = 0; indexY < yNum; indexY++) {
+                    xyForCoords.push({
+                        x: topX + indexX * 900,
+                        y: topY + indexY * 900,
+                    })
+                }
+            }
+
+            const textOffset = { x: 50, y: 35 };
+            xyForCoords.forEach(coord => {
+
+                const cOffset = [coord.x + textOffset.x, coord.y + textOffset.y];
+                const text = coordsToRowCol(cOffset)
+                const latLng = rc.unproject(cOffset)
+                const coords = L.latLng(latLng);
+                const label = L.marker(coords, {
+                    icon: L.divIcon({
+                        className: 'text-labels',   // Set class for CSS styling
+                        html: `${text}`
+                    }),
+                    zIndexOffset: 1000     // Make appear above other map features
+                }).addTo(map)
+                coordLabels.push(label)
+            })
+        }
+
+        function rowColToCoords(input) {
+            const center = {
+                x: img.x / 2, y: img.y / 2
+            }
+            const mapCoords = [
+                center.x + 900 * input[0],
+                center.y - 900 * input[1],
+            ]
+            return mapCoords
+        }
+        function coordsToRowCol(input) {
+            //x32400/y30800
+
+            const center = {
+                x: img.x / 2, y: img.y / 2
+            }
+            const mapCoords = [
+                Math.floor((center.x - input[0]) / 900) * (-1),
+                Math.floor((center.y - input[1]) / 900),
+            ]
+            return mapCoords
+        }
+
+        function createCoordinatesByClick([x1, y1], offset = true) {
+            const innerOffset = offset ? 20 : 0
+            const x = Math.floor(x1 / 900) * 900
+            const y = Math.floor(y1 / 900) * 900
+            return [
+                [x + innerOffset, y + innerOffset],
+                [x + 900 - innerOffset, y + innerOffset],
+                [x + 900 - innerOffset, y + 900 - innerOffset],
+                [x + innerOffset, y + 900 - innerOffset],
+                [x + innerOffset, y + innerOffset],
+            ]
+        }
+
+        // drawNet()
+        // function drawNet() {
+        //     for (let i = 0; i <= 71; i++) {
+        //         const coords = [
+        //             [900 * i, 0],
+        //             [900 * i, img.y]
+        //         ];
+        //         const unpCoords = coords.map(c => {
+        //             return rc.unproject(c)
+        //         })
+        //         L.polyline(unpCoords, { weight: 1, color: '#4eb5cc' }).addTo(map);
+        //     }
+        //     for (let i = 0; i <= 71; i++) {
+        //         const coords = [
+        //             [0, 900 * i],
+        //             [img.x, 900 * i]
+        //         ];
+        //         const unpCoords = coords.map(c => {
+        //             return rc.unproject(c)
+        //         })
+        //         L.polyline(unpCoords, { weight: 1, color: '#4eb5cc' }).addTo(map);
+        //     }
+        // }
+
+        function drawPolygon(coords, color = "white") {
+            const unpCoords = coords.map(c => {
+                return rc.unproject(c)
+            })
+            const polygon = L.polygon(unpCoords, {
+                color,
+                "fillOpacity": 0
+            });
+            polygon.addTo(map);
+            //map.fitBounds(polygon.getBounds());
+            return polygon;
+        }
+
+        function unproject(arr) {
+            const { lat, lng } = rc.unproject(arr)
+            return [lng, lat]
+        }
+
+        // function buildCategiries(data) {
+        //     console.log('data', data);
+        //     const cats = data.map(i => {
+        //         const button = buildButton(i, e => { buildCatContent(i) })
+        //         categories.appendChild(button)
+        //     })
+        // }
+
+        // function buildCatContent(group) {
+        //     console.log('buildCatContent', group);
+        //     const cat = mainData.data[group]
+        //     subcat.replaceChildren()
+
+
+        //     console.log('mainData.data[group]', mainData.data[group]);
+        //     const selectAllChecked = Object.values(mainData.data[group]).some(i => i?.checked)
+
+        //     const selectAll = buildCheckBoxes("Select all", group + "_all", selectAllChecked, function (e) {
+        //         const boxes = Array.from(document.querySelectorAll(`[name=${group}]`))
+        //         if (boxes.some(b => !b.checked)) {
+        //             boxes.forEach(b => {
+        //                 if (!b.checked) b.click()
+        //             })
+        //             this.checked = true;
+        //         } else {
+        //             boxes.forEach(b => b.click())
+        //         }
+        //     })
+
+        //     subcat.appendChild(selectAll)
+
+        //     Object.entries(cat).forEach(p => {
+        //         console.log('p', p);
+        //         const name = p[0]
+        //         const boxChecked = mainData.data[group][name]?.checked || false
+        //         const box = buildCheckBoxes(name, group, boxChecked, function (e) {
+        //             const id = group + "_" + name;
+        //             const pins = mainData.data[group][name]
+        //             pins['checked'] = this.checked
+        //             if (this.checked) {
+        //                 buildPins(pins, id)
+        //             } else {
+        //                 removePins(id)
+        //             }
+        //         })
+        //         subcat.appendChild(box)
+        //     })
+        // }
+
+        // function buildCheckBoxes(name, group, checked, click) {
+        //     const div = document.createElement("div")
+        //     var checkbox = document.createElement('input');
+        //     checkbox.type = "checkbox";
+        //     checkbox.name = group;
+        //     checkbox.value = name;
+        //     checkbox.id = group + name;
+
+        //     console.log('->', group, name);
+        //     checkbox.checked = checked
+
+        //     var label = document.createElement('label')
+        //     label.htmlFor = group + name;
+        //     label.appendChild(document.createTextNode(name));
+
+        //     checkbox.addEventListener("input", click)
+
+        //     div.appendChild(checkbox);
+        //     div.appendChild(label);
+
+        //     // div.addEventListener("click", click)
+        //     return div;
+        // }
+
+        // function removePins(id) {
+        //     // mainData.markers
+        //     //     .filter(m => m.options.id === id)
+        //     //     .forEach((m, index) => {
+        //     //         markersCanvas.removeMarker(m)
+        //     //     })
+        //     // mainData.markers = mainData.markers.filter(m => m.options.id !== id)
+        //     // markersCanvas.redraw()
+
+        //     const removeMarkers = mainData.markers.filter(m => m.options.id === id)
+        //     markersCanvas.removeMarkers(removeMarkers)
+
+        //     mainData.markers = mainData.markers.filter(m => m.options.id !== id)
+        //     markersCanvas.redraw()
+        // }
+
+        // function buildPins(pins, id) {
+        //     const markers = [];
+        //     Object.entries(pins).forEach(p => {
+        //         const coords = p[1]
+        //         if (coords.x) {
+        //             const { x, y } = coords
+        //             const cx = x - offset.x
+        //             const cy = 14336 - y - offset.y
+        //             var marker = L.marker(rc.unproject([cx, cy]), {
+        //                 icon: icon,
+        //                 id: id
+        //             }).bindPopup(id);
+        //             markers.push(marker)
+        //         }
+        //     })
+
+        //     markersCanvas.addMarkers(markers);
+        //     mainData.markers.push(...markers)
+        // }
+
+        // function buildButton(name, click) {
+        //     const div = document.createElement("div")
+        //     div.className = "cat-item";
+        //     div.innerText = name;
+        //     div.addEventListener("click", click)
+        //     return div;
+        // }
+
+
+        function openNav() {
+            document.getElementById("mySidenav").style.width = "350px";
+        }
+
+        function closeNav() {
+            document.getElementById("mySidenav").style.width = "0";
+        }
+    </script>
+</body>
+
+</html>
