@@ -283,7 +283,7 @@
                 }
             }
 
-            const textOffset = { x: 40, y: 30 };
+            const textOffset = { x: 50, y: 35 };
             xyForCoords.forEach(coord => {
 
                 const cOffset = [coord.x + textOffset.x, coord.y + textOffset.y];
@@ -293,7 +293,7 @@
                 const label = L.marker(coords, {
                     icon: L.divIcon({
                         className: 'text-labels',   // Set class for CSS styling
-                        html: `[${text}]`
+                        html: `${text}`
                     }),
                     zIndexOffset: 1000     // Make appear above other map features
                 }).addTo(map)
