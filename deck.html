@@ -177,8 +177,8 @@
         // create the map
         var map = L.map('map', {
             // crs: L.CRS.Simple,
-            maxZoom: 8,
-            minZoom: 3,
+            maxZoom: 7,
+            minZoom: 5,
             zoomControl: false,
             preferCanvas: true,
             noWrap: true
@@ -288,7 +288,6 @@
 
             const latLng = selected.map(poly => turf.polygon([poly.map(c => unproject(c))]))
             //console.log('latLng', latLng);
-
             const collection = turf.featureCollection(latLng);
             //console.log('collection', JSON.stringify(collection));
         })
