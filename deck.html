@@ -209,20 +209,28 @@
 
                 const x1 = x * 900
                 const y1 = y * 900
-                deckData.push([
-                    [
-                        unproject([x1, y1]),
-                        unproject([x1, y1 + 900]),
-                        unproject([x1 + 900, y1 + 900]),
-                        unproject([x1 + 900, y1]),
-                        unproject([x1, y1]),
-                    ]
-                ])
+
+                const row = - 35 + x;
+                const col = 35 - y;
+
+                deckData.push(
+                    {
+                        id: `${row}|${col}`,
+                        number: [x, y],
+                        coords: [
+                            unproject([x1, y1]),
+                            unproject([x1, y1 + 900]),
+                            unproject([x1 + 900, y1 + 900]),
+                            unproject([x1 + 900, y1]),
+                            unproject([x1, y1]),
+                        ]
+                    }
+                )
             }
         }
 
         const deckNet = {
-            data: deckData,
+            data: deckData.map(d => d.coords),
             getPolygon: d => d,
             stroked: true,
             filled: false,
@@ -264,8 +272,12 @@
             const c = rc.project(e.latlng);
             const { x, y } = c
             const coords = createCoordinatesByClick([x, y])
-            //drawPolygon(coords)
-            //selected.push(createCoordinatesByClick([x, y], false))
+            drawPolygon(coords)
+
+            selected.push(createCoordinatesByClick([x, y], false))
+
+
+            getIdByCoordinates(x, y)
         })
 
         map.on("dragend zoomend", e => {
@@ -273,14 +285,6 @@
             if (map.getZoom() > 5) {
                 drawCoordsInView()
             }
-
-            console.log('dragend',);
-            deckLayer.setProps({
-                data: [[
-                    unproject([10, 0]),
-                    unproject([10, 5]),
-                ]]
-            })
         })
 
         fetchData.addEventListener("click", () => {
@@ -294,27 +298,48 @@
                         const y = attr.find(i => i.trait_type === "Y.Coord").value
                         return { x, y }
                     })
-                    console.log('coords', coords);
+                    console.log('items', items);
 
-                    items.forEach(item => {
-                        allPolygons.push(drawPolygon(createCoordinatesByClick(rowColToCoords([item.x, item.y])), "yellow"))
+                    const filteredSquares = items.map(item => {
+                        const coords = rowColToCoords([item.x, item.y]);
+                        const pCoords = createCoordinatesByClick(coords);
+                        allPolygons.push(drawPolygon(pCoords, "yellow"))
+                        return `${item.x}|${item.y}`
                     })
+
+                    console.log('filteredSquares', filteredSquares);
+
+                    //---------- update DECKGL ----------------
+                    const newData = deckData.filter(sq => !filteredSquares.includes(sq.id));
+                    console.log('newData', newData);
+                    deckLayer.setProps({
+                        layers: [
+                            new deck.PolygonLayer({
+                                ...deckNet,
+                                data: newData.map(d => d.coords),
+                                filled: true
+                            })
+                        ]
+                    });
                 })
 
-            //update FILL
-            deckLayer.setProps({
-                layers: [
-                    new deck.PolygonLayer({
-                        ...deckNet,
-                        filled: true
-                    })
-                ]
-            });
+
 
         })
         clearData.addEventListener("click", () => {
             console.log('clear data', allPolygons);
             allPolygons.forEach(poly => poly.remove())
+
+
+            deckLayer.setProps({
+                layers: [
+                    new deck.PolygonLayer({
+                        ...deckNet,
+                        data: deckData.map(d => d.coords),
+                        filled: false
+                    })
+                ]
+            });
         })
 
         //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
@@ -400,6 +425,14 @@
                 [x + innerOffset, y + 900 - innerOffset],
                 [x + innerOffset, y + innerOffset],
             ]
+        }
+
+        function getIdByCoordinates(x1, y1) {
+            const x = Math.floor(x1 / 900)
+            const y = Math.floor(y1 / 900)
+            const row = - 35 + x;
+            const col = 35 - y;
+            console.log('[', row, ",", col, ']');
         }
 
         // drawNet()
