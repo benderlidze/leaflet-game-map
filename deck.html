@@ -19,6 +19,7 @@
 
     <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
     <script src="https://unpkg.com/deck.gl-leaflet@1.2.0/dist/deck.gl-leaflet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <style>
         html,
@@ -158,6 +159,8 @@
         const coordLabels = [];
         const allPolygons = [];
 
+        const idToCoords = []
+
         const mainData = {
             data: {},
             markers: []
@@ -230,6 +233,12 @@
             }
         }
 
+        //get the squares id`s from file 
+        fetch("id_to_coords.json").then(data => data.json()).then(data => {
+            console.log('data', data);
+            idToCoords.push(...Object.entries(data))
+        })
+
         const deckNet = {
             data: deckData.map(d => d.coords),
             getPolygon: d => d,
@@ -251,9 +260,6 @@
         });
 
         map.addLayer(deckLayer);
-
-
-
 
         L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -277,8 +283,14 @@
 
             selected.push(createCoordinatesByClick([x, y], false))
 
-
             getIdByCoordinates(x, y)
+
+
+            const latLng = selected.map(poly => turf.polygon([poly.map(c => unproject(c))]))
+            //console.log('latLng', latLng);
+
+            const collection = turf.featureCollection(latLng);
+            //console.log('collection', JSON.stringify(collection));
         })
 
         map.on("dragend zoomend", e => {
@@ -293,6 +305,7 @@
                 .then(data => data.json())
                 .then(data => {
                     const json = data.body
+                    console.log('data.body', data.body);
                     const items = json.map(d => {
                         const attr = d.attributes
                         const x = attr.find(i => i.trait_type === "X.Coord").value
@@ -324,13 +337,10 @@
                     });
                 })
 
-
-
         })
         clearData.addEventListener("click", () => {
             console.log('clear data', allPolygons);
             allPolygons.forEach(poly => poly.remove())
-
 
             deckLayer.setProps({
                 layers: [
@@ -433,7 +443,10 @@
             const y = Math.floor(y1 / 900)
             const row = - 35 + x;
             const col = 35 - y;
+
+            const id = idToCoords.find(i => i[1] === `${row},${col}`)
             console.log('[', row, ",", col, ']');
+            console.log('ID=', id[0]);
         }
 
         // drawNet()
