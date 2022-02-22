@@ -13,6 +13,7 @@
         integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
         crossorigin=""></script>
     <script src="js/coords.js"></script>
+    <script src="http://andriiheonia.github.io/hull/javascripts/hull.js"></script>
 
     <script src="https://unpkg.com/rbush@3.0.1/rbush.js"></script>
     <script src="js/leaflet-markers-canvas.js"></script>
@@ -105,6 +106,13 @@
             left: 200px;
         }
 
+        #fetchGroups {
+            position: absolute;
+            z-index: 10000;
+            top: 60px;
+            left: 200px;
+        }
+
         #clearData {
             position: absolute;
             z-index: 10000;
@@ -144,11 +152,13 @@
     </div>
     <div id="menubutton" style="font-size:30px;cursor:pointer" onclick="openNav()">Menu</div>
     <div id='map'></div>
+    <button id="fetchGroups">Fetch groups</button>
     <button id="fetchData">API test</button>
     <button id="clearData">Clear</button>
     <script>
 
         const categories = document.getElementById("categories")
+        const fetchGroups = document.getElementById("fetchGroups")
         const subcat = document.getElementById("subcat")
         const coords = document.getElementById("coords")
         const zoom = document.getElementById("zoom")
@@ -158,7 +168,7 @@
         const selected = [];
         const coordLabels = [];
         const allPolygons = [];
-
+        const selectedOffset = [];
         const idToCoords = []
 
         const mainData = {
@@ -235,7 +245,6 @@
 
         //get the squares id`s from file 
         fetch("id_to_coords.json").then(data => data.json()).then(data => {
-            console.log('data', data);
             idToCoords.push(...Object.entries(data))
         })
 
@@ -282,6 +291,7 @@
             drawPolygon(coords)
 
             selected.push(createCoordinatesByClick([x, y], false))
+            selectedOffset.push(createCoordinatesByClick([x, y], true))
 
             getIdByCoordinates(x, y)
 
@@ -311,7 +321,6 @@
                         const y = attr.find(i => i.trait_type === "Y.Coord").value
                         return { x, y }
                     })
-                    console.log('items', items);
 
                     const filteredSquares = items.map(item => {
                         const coords = rowColToCoords([item.x, item.y]);
@@ -350,6 +359,70 @@
                     })
                 ]
             });
+        })
+
+        fetchGroups.addEventListener("click", () => {
+
+            fetch("https://turf-assets-dev2.s3.us-west-1.amazonaws.com/neighborhoods_test_1.js")
+                .then(data => data.json())
+                .then(data => {
+                    console.log('fetchGroups:', data);
+
+
+                    data.map(item => {
+
+                        const color = item.color
+                        const coords = idToCoords.filter(id => item.token_ids.includes(+id[0]))
+
+                        const _group = []
+                        coords.map(rowCol => {
+
+                            const [r, c] = rowCol[1].split(",").map(n => Number(n))
+                            const _coords = getCoordsByRowCol(r, c);
+                            const _poly = createCoordinatesByClick(_coords, true)
+                            _group.push(_poly)
+                        })
+                        console.log('_group', _group);
+                        drawPolygon(hull(_group.flat()), color)
+
+                    })
+
+
+
+
+                    //drawPolygon(hull(selectedOffset.flat()),"red")
+
+                })
+
+            //find coords 
+            const ids = [2196, 1684, 2021, 1658]
+            const coords = idToCoords.filter(item => ids.includes(+item[0]))
+            console.log('coords', coords);
+
+            if (coords && coords.length > 0) {
+
+                const polygons = coords.map(coord => {
+                    console.log('coords', coord[1]);
+                    const [row, col] = coord[1].split(",")
+                    const square = getCoordsByRowCol(row, col)
+                    const polygonCoords = createCoordinatesByClick(square, false)
+
+                    const unpCoords = polygonCoords.map(c => {
+                        return unproject(c)
+                    })
+                    const poly = turf.polygon([unpCoords])
+                    return poly
+                })
+
+                // const union = polygons.reduce((join, poly) => {
+                //     return turf.union(join, poly);
+                // })
+
+
+                // const collection = turf.featureCollection(polygons)
+                // console.log('collection', JSON.stringify(union));
+            }
+
         })
 
         //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
@@ -448,6 +521,12 @@
             console.log('ID=', id[0]);
         }
 
+        function getCoordsByRowCol(row, col) {
+            const x = (35 + Number(row)) * 900;
+            const y = (35 - Number(col)) * 900;
+            return [x, y]
+        }
+
         // drawNet()
         // function drawNet() {
         //     for (let i = 0; i <= 71; i++) {
@@ -481,7 +560,6 @@
                 "fillOpacity": 0
             });
             polygon.addTo(map);
-            //map.fitBounds(polygon.getBounds());
             return polygon;
         }
 
@@ -606,7 +684,6 @@
         //     div.addEventListener("click", click)
         //     return div;
         // }
-
 
         function openNav() {
             document.getElementById("mySidenav").style.width = "350px";
