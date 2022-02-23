@@ -22,6 +22,7 @@
     <script src="https://unpkg.com/deck.gl-leaflet@1.2.0/dist/deck.gl-leaflet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
+    <script src="js/buffer.js"></script>
     <style>
         html,
         body {
@@ -200,8 +201,14 @@
             minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 5,
             zoomControl: false,
             preferCanvas: true,
-            noWrap: true
+            noWrap: true,
+            edgeBufferTiles: 20,
         })
+
+        map.setMaxBounds([
+            [89.99, 198],
+            [-89.99, -198]
+        ])
 
         var mapBounds = new L.LatLngBounds(
             map.unproject([1, 63900], 8),
@@ -330,6 +337,7 @@
 
         map.on("click", e => {
             const c = rc.project(e.latlng);
+            console.log('c', e.latlng, c);
             const { x, y } = c
             const coords = createCoordinatesByXY([x, y])
             drawPolygon(coords)
@@ -348,6 +356,10 @@
             if (map.getZoom() > 5) {
                 drawCoordsInView()
             }
+        })
+
+        map.on("mousemove", e => {
+            console.log('e.latlng', e.latlng);
         })
 
         fetchData.addEventListener("click", () => {
@@ -501,11 +513,9 @@
             const textOffset = { x: 50, y: 35 };
             xyForCoords.forEach(coord => {
 
-
-
                 const cOffset = [coord.x + textOffset.x, coord.y + textOffset.y];
                 const text = coordsToRowCol(cOffset)
-                console.log('text', text);
+
                 if (Math.abs(text[0]) > 35 || Math.abs(text[1]) > 35) return;
 
                 const latLng = rc.unproject(cOffset)
