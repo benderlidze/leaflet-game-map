@@ -157,6 +157,7 @@
     <button id="clearData">Clear</button>
     <script>
 
+
         const categories = document.getElementById("categories")
         const fetchGroups = document.getElementById("fetchGroups")
         const subcat = document.getElementById("subcat")
@@ -170,6 +171,12 @@
         const allPolygons = [];
         const selectedOffset = [];
         const idToCoords = []
+
+        //for development only 
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        const dev = params.dev;
 
         const mainData = {
             data: {},
@@ -188,7 +195,7 @@
         var map = L.map('map', {
             // crs: L.CRS.Simple,
             maxZoom: 7,
-            minZoom: 5,
+            minZoom: dev ? 1 : 5,
             zoomControl: false,
             preferCanvas: true,
             noWrap: true
@@ -287,11 +294,11 @@
         map.on("click", e => {
             const c = rc.project(e.latlng);
             const { x, y } = c
-            const coords = createCoordinatesByClick([x, y])
+            const coords = createCoordinatesByXY([x, y])
             drawPolygon(coords)
 
-            selected.push(createCoordinatesByClick([x, y], false))
-            selectedOffset.push(createCoordinatesByClick([x, y], true))
+            selected.push(createCoordinatesByXY([x, y], false))
+            //selectedOffset.push(createCoordinatesByXY([x, y], true))
 
             getIdByCoordinates(x, y)
 
@@ -324,7 +331,7 @@
 
                     const filteredSquares = items.map(item => {
                         const coords = rowColToCoords([item.x, item.y]);
-                        const pCoords = createCoordinatesByClick(coords);
+                        const pCoords = createCoordinatesByXY(coords);
                         allPolygons.push(drawPolygon(pCoords, "yellow"))
                         return `${item.x}|${item.y}`
                     })
@@ -379,19 +386,20 @@
 
                             const [r, c] = rowCol[1].split(",").map(n => Number(n))
                             const _coords = getCoordsByRowCol(r, c);
-                            const _poly = createCoordinatesByClick(_coords, true)
+                            const _poly = createCoordinatesByXY(_coords, true)
                             _group.push(_poly)
                         })
-                        console.log('_group', _group);
-                        drawPolygon(hull(_group.flat()), color)
 
+                        const _flatGroup = _group.flat();
+                        const _topLeftCorner = findTopLeftCorner(_flatGroup)
+
+                        const topMarker = addMarkerToGroup({
+                            topLeft: _topLeftCorner,
+                            logo: item.logo_url
+                        })
+
+                        drawPolygon(hull(_flatGroup), color)
                     })
-
-
-
-
-                    //drawPolygon(hull(selectedOffset.flat()),"red")
-
                 })
 
             //find coords 
@@ -405,7 +413,7 @@
                     console.log('coords', coord[1]);
                     const [row, col] = coord[1].split(",")
                     const square = getCoordsByRowCol(row, col)
-                    const polygonCoords = createCoordinatesByClick(square, false)
+                    const polygonCoords = createCoordinatesByXY(square, false)
 
                     const unpCoords = polygonCoords.map(c => {
                         return unproject(c)
@@ -497,7 +505,33 @@
             return mapCoords
         }
 
-        function createCoordinatesByClick([x1, y1], offset = true) {
+        function addMarkerToGroup({ topLeft, logo }) {
+
+            const latLng = rc.unproject(topLeft)
+            const LeafIcon = L.Icon.extend({
+                options: {
+                    iconSize: [38, 40],
+                    iconAnchor: [19, 20],
+                    popupAnchor: [77, 77]
+                }
+            });
+            const gIcon = new LeafIcon({ iconUrl: logo });
+            const gMarker = L.marker(latLng, { icon: gIcon }).addTo(map).on('click', () => {
+                console.log('click marker',);
+            })
+
+            return gMarker;
+        }
+
+        function findTopLeftCorner(flat) {
+
+            const sort = flat.sort((a, b) => {
+                return (a[1] - b[1] || a[0] - b[0]);
+            })
+            return sort[0]
+        }
+
+        function createCoordinatesByXY([x1, y1], offset = true) {
             const innerOffset = offset ? 20 : 0
             const x = Math.floor(x1 / 900) * 900
             const y = Math.floor(y1 / 900) * 900
