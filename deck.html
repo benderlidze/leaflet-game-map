@@ -215,9 +215,27 @@
             iconAnchor: [10, 32],
         });
 
+
+
         // assign map and image dimensions
         var rc = new L.RasterCoords(map, [img.x, img.y])
         map.setView(rc.unproject([img.x / 2, img.y / 2]), 2)
+
+
+
+        map.createPane('bkgPane');
+        map.getPane('bkgPane').style.zIndex = 1;
+        const background = [
+            [0, 0],
+            [0, 63900],
+            [63900, 63900],
+            [63900, 0],
+            [0, 0]
+        ];
+        L.polygon(background.map(c => {
+            return rc.unproject(c)
+        }), { weight: 0, color: '#91d5e4', fillOpacity: 1, pane: 'bkgPane' }).addTo(map);
+
         const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
@@ -225,6 +243,8 @@
         }).addTo(map)
 
 
+
+        //MAP border 
         const border = [
             [0, 0],
             [0, 63900],
@@ -236,6 +256,8 @@
             return rc.unproject(c)
         })
         L.polyline(unpCoords, { weight: 5, color: '#9c6029' }).addTo(map);
+
+
 
 
         //create  NET
