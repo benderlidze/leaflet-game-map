@@ -289,7 +289,7 @@
 
 
         //create  NET
-        /*
+
         const deckData = []
         for (let x = 0; x < 71; x++) {
             for (let y = 0; y < 71; y++) {
@@ -315,34 +315,34 @@
                 )
             }
         }
-        */
+
 
         //get the squares id`s from file 
         fetch("id_to_coords.json").then(data => data.json()).then(data => {
             idToCoords.push(...Object.entries(data))
         })
 
-        // const deckNet = {
-        //     data: deckData.map(d => d.coords),
-        //     getPolygon: d => d,
-        //     stroked: true,
-        //     filled: false,
-        //     getLineColor: [78, 181, 204],
-        //     getFillColor: [255, 255, 255, 150],
-        //     getLineWidth: 1,
-        //     lineWidthUnits: 'pixels',
-        // }
+        const deckNet = {
+            data: deckData.map(d => d.coords),
+            getPolygon: d => d,
+            stroked: true,
+            filled: false,
+            getLineColor: [78, 181, 204],
+            getFillColor: [255, 255, 255, 150],
+            getLineWidth: 1,
+            lineWidthUnits: 'pixels',
+        }
 
-        // const deckLayer = new DeckGlLeaflet.LeafletLayer({
-        //     views: [
-        //         new deck.MapView({
-        //             repeat: false,
-        //         })
-        //     ],
-        //     layers: [new deck.PolygonLayer(deckNet)],
-        // });
+        const deckLayer = new DeckGlLeaflet.LeafletLayer({
+            views: [
+                new deck.MapView({
+                    repeat: false,
+                })
+            ],
+            layers: [new deck.PolygonLayer(deckNet)],
+        });
 
-        // map.addLayer(deckLayer);
+        map.addLayer(deckLayer);
 
         L.control.zoom({ position: 'topright' }).addTo(map);
 
