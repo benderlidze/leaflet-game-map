@@ -133,7 +133,7 @@
         .leaflet-container {
             background-color: #91d5e4;
             background-image: url(img/tile.png);
-            background-size: 20%;
+            /* background-size: 20%; */
         }
 
         .text-labels {
@@ -141,6 +141,13 @@
             color: white;
             font-family: Helvetica, sans-serif;
             /* Use color, background, set margins for offset, etc */
+        }
+
+        #inputId {
+            position: absolute;
+            top: 100px;
+            left: 200px;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -156,11 +163,15 @@
     <div id="menubutton" style="font-size:30px;cursor:pointer" onclick="openNav()">Menu</div>
     <div id='map'></div>
     <button id="fetchGroups">Fetch groups</button>
+    <div id="inputId">
+        <input id="tokenId" type="text">
+    </div>
     <button id="fetchData">API test</button>
     <button id="clearData">Clear</button>
     <script>
 
 
+        const tokenId = document.getElementById("tokenId")
         const categories = document.getElementById("categories")
         const fetchGroups = document.getElementById("fetchGroups")
         const subcat = document.getElementById("subcat")
@@ -205,14 +216,19 @@
             edgeBufferTiles: 20,
         })
 
-        map.setMaxBounds([
-            [89.99, 198],
-            [-89.99, -198]
-        ])
+        // map.setMaxBounds([
+        //     [89.99, 198],
+        //     [-89.99, -198]
+        // ])
 
         var mapBounds = new L.LatLngBounds(
             map.unproject([1, 63900], 8),
             map.unproject([63900, 1], 8));
+
+        // map.setMaxBounds([
+        //     map.unproject([1, 63900], 8),
+        //     map.unproject([63900, 1], 8)
+        // ])
 
         var markersCanvas = new L.MarkersCanvas();
         markersCanvas.addTo(map);
@@ -360,7 +376,7 @@
         })
 
         map.on("mousemove", e => {
-            console.log('e.latlng', e.latlng);
+            // console.log('e.latlng', e.latlng);
         })
 
         fetchData.addEventListener("click", () => {
@@ -457,11 +473,9 @@
             if (coords && coords.length > 0) {
 
                 const polygons = coords.map(coord => {
-                    console.log('coords', coord[1]);
                     const [row, col] = coord[1].split(",")
                     const square = getCoordsByRowCol(row, col)
                     const polygonCoords = createCoordinatesByXY(square, false)
-
                     const unpCoords = polygonCoords.map(c => {
                         return unproject(c)
                     })
@@ -479,6 +493,25 @@
             }
 
         })
+
+        tokenId.addEventListener("keyup", function (event) {
+            // Number 13 is the "Enter" key on the keyboard
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                const token = tokenId.value
+                const rowCol = idToCoords.filter(id => +id[0] === +token).flat()
+
+                if (rowCol.length > 0) {
+                    const [r, c] = rowCol[1].split(",").map(rc => +rc)
+                    const [x, y] = getCoordsByRowCol(r, c);
+                    const poly = createCoordinatesByXY([x, y], false)
+                    drawPolygon(poly)
+                    var polygon = turf.polygon([poly.map(i => unproject(i))]);
+                    var center = turf.centerOfMass(polygon);
+                    map.setView(center.geometry.coordinates.reverse(), 8)
+                }
+            }
+        });
 
         //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
         //drawPolygon(createCoordinatesByClick(rowColToCoords([18, -6])))
