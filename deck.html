@@ -211,7 +211,7 @@
             maxZoom: 7,
             minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 5,
             zoomControl: false,
-            preferCanvas: true,
+            // preferCanvas: true,
             noWrap: true,
             edgeBufferTiles: 20,
             inertia: false
@@ -283,6 +283,9 @@
         L.polyline(unpCoords, { weight: 5, color: '#9c6029' }).addTo(map);
 
 
+        //DRAW YELLOW BORDER
+        const centerPoly = createCoordinatesByXY(getCoordsByRowCol(0, 0), true)
+        drawPolygon(centerPoly, "yellow", true)
 
 
         //create  NET
@@ -427,6 +430,7 @@
                     console.log('filteredSquares', filteredSquares);
 
                     //---------- update DECKGL ----------------
+                    /*
                     const newData = deckData.filter(sq => !filteredSquares.includes(sq.id));
                     console.log('newData', newData);
                     deckLayer.setProps({
@@ -438,6 +442,7 @@
                             })
                         ]
                     });
+                    */
                 })
 
         })
@@ -697,13 +702,15 @@
         //     }
         // }
 
-        function drawPolygon(coords, color = "white") {
+        function drawPolygon(coords, color = "white", dashArray = false) {
             const unpCoords = coords.map(c => {
                 return rc.unproject(c)
             })
+
             const polygon = L.polygon(unpCoords, {
                 color,
-                "fillOpacity": 0
+                "fillOpacity": 0,
+                dashArray: dashArray ? '5,10' : '',
             });
             polygon.addTo(map);
             return polygon;
