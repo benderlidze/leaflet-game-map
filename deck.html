@@ -208,8 +208,8 @@
         // create the map
         var map = L.map('map', {
             // crs: L.CRS.Simple,
-            maxZoom: 7,
-            minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 5,
+            maxZoom: 8,
+            minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 6,
             zoomControl: false,
             //preferCanvas: true,
             noWrap: true,
@@ -270,11 +270,11 @@
 
         //MAP border 
         const border = [
-            [0, 0],
-            [0, imageSquareSize],
-            [imageSquareSize, imageSquareSize],
-            [imageSquareSize, 0],
-            [0, 0]
+            [3600, 3600],
+            [3600, imageSquareSize - 3600],
+            [imageSquareSize - 3600, imageSquareSize - 3600],
+            [imageSquareSize - 3600, 3600],
+            [3600, 3600]
         ];
         const unpCoords = border.map(c => {
             return rc.unproject(c)
@@ -292,6 +292,12 @@
         const deckData = []
         for (let x = 0; x < 79; x++) {
             for (let y = 0; y < 79; y++) {
+
+                //skip trees 
+                if (x < 4) continue;
+                if (x > 74) continue;
+                if (y < 4) continue;
+                if (y > 74) continue;
 
                 const x1 = x * 900
                 const y1 = y * 900
