@@ -132,8 +132,8 @@
 
         .leaflet-container {
             background-color: #91d5e4;
-            background-image: url(img/tile.png);
-            background-size: 155px 160px;
+            /* background-image: url(img/tile.png);
+            background-size: 155px 160px; */
         }
 
         .text-labels {
@@ -169,8 +169,8 @@
     <button id="fetchData">API test</button>
     <button id="clearData">Clear</button>
     <script>
-
-        const imageSquareSize = 63900;
+        const centerCell = 39;
+        const imageSquareSize = 71100;
         const tokenId = document.getElementById("tokenId")
         const categories = document.getElementById("categories")
         const fetchGroups = document.getElementById("fetchGroups")
@@ -211,25 +211,27 @@
             maxZoom: 7,
             minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 5,
             zoomControl: false,
-            // preferCanvas: true,
+            //preferCanvas: true,
             noWrap: true,
             edgeBufferTiles: 20,
-            inertia: false
+            //inertia: false
         })
 
         // map.setMaxBounds([
         //     [89.99, 198],
         //     [-89.99, -198]
         // ])
+        var rc = new L.RasterCoords(map, [img.x, img.y])
 
         var mapBounds = new L.LatLngBounds(
-            map.unproject([1, imageSquareSize], 8),
-            map.unproject([imageSquareSize, 1], 8));
+            rc.unproject([1, imageSquareSize], 8),
+            rc.unproject([imageSquareSize, 1], 8)
+        );
 
-        // map.setMaxBounds([
-        //     map.unproject([1, imageSquareSize], 8),
-        //     map.unproject([imageSquareSize, 1], 8)
-        // ])
+        map.setMaxBounds([
+            rc.unproject([1, imageSquareSize], 8),
+            rc.unproject([imageSquareSize, 1], 8)
+        ])
 
         var markersCanvas = new L.MarkersCanvas();
         markersCanvas.addTo(map);
@@ -239,10 +241,7 @@
             iconAnchor: [10, 32],
         });
 
-
-
         // assign map and image dimensions
-        var rc = new L.RasterCoords(map, [img.x, img.y])
         map.setView(rc.unproject([img.x / 2, img.y / 2]), 2)
 
 
@@ -261,7 +260,7 @@
         }), { weight: 0, color: '#91d5e4', fillOpacity: 1, pane: 'bkgPane' }).addTo(map);
 
         //const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
-        const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
+        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
             bounds: mapBounds
@@ -291,8 +290,8 @@
         //create  NET
 
         const deckData = []
-        for (let x = 0; x < 71; x++) {
-            for (let y = 0; y < 71; y++) {
+        for (let x = 0; x < 79; x++) {
+            for (let y = 0; y < 79; y++) {
 
                 const x1 = x * 900
                 const y1 = y * 900
@@ -384,28 +383,22 @@
             }
         })
 
-        map.on("dragend", e => {
-
-            let { lat, lng } = map.getCenter()
-            console.log('map.unproject([1, imageSquareSize], 8)', map.unproject([1, imageSquareSize], 8));
-            console.log('map.unproject([imageSquareSize, 1], 8)', map.unproject([imageSquareSize, 1], 8));
-            console.log('', lat, lng);
-
-
-            if (lng < -179) {
-                lng = -180;
-            }
-
-            if (lat < -84) {
-                lat = -84
-            }
-            if (lng > 167) {
-                lng = 167
-            }
-
-            map.setView({ lat, lng })
-
-        })
+        // map.on("dragend", e => {
+        //     let { lat, lng } = map.getCenter()
+        //     console.log('map.unproject([1, imageSquareSize], 8)', map.unproject([1, imageSquareSize], 8));
+        //     console.log('map.unproject([imageSquareSize, 1], 8)', map.unproject([imageSquareSize, 1], 8));
+        //     console.log('', lat, lng);
+        //     if (lng < -179) {
+        //         lng = -180;
+        //     }
+        //     if (lat < -84) {
+        //         lat = -84
+        //     }
+        //     if (lng > 167) {
+        //         lng = 167
+        //     }
+        //     map.setView({ lat, lng })
+        // })
 
         fetchData.addEventListener("click", () => {
             fetch("https://5yysmsvgv1.execute-api.us-east-1.amazonaws.com/staging/read_ddb?plot_type=Power%20Plant")
@@ -668,8 +661,8 @@
         function getIdByCoordinates(x1, y1) {
             const x = Math.floor(x1 / 900)
             const y = Math.floor(y1 / 900)
-            const row = - 35 + x;
-            const col = 35 - y;
+            const row = - centerCell + x;
+            const col = centerCell - y;
 
             const id = idToCoords.find(i => i[1] === `${row},${col}`)
 
@@ -682,8 +675,8 @@
         }
 
         function getCoordsByRowCol(row, col) {
-            const x = (35 + Number(row)) * 900;
-            const y = (35 - Number(col)) * 900;
+            const x = (centerCell + Number(row)) * 900;
+            const y = (centerCell - Number(col)) * 900;
             return [x, y]
         }
 
