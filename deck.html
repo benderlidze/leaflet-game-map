@@ -170,7 +170,7 @@
     <button id="clearData">Clear</button>
     <script>
 
-
+        const imageSquareSize = 63900;
         const tokenId = document.getElementById("tokenId")
         const categories = document.getElementById("categories")
         const fetchGroups = document.getElementById("fetchGroups")
@@ -197,8 +197,8 @@
             markers: []
         };
         const img = {
-            x: 63900,  // original width of image 
-            y: 63900   // original height of image
+            x: imageSquareSize,  // original width of image 
+            y: imageSquareSize   // original height of image
         }
         const offset = {
             x: 0,
@@ -223,12 +223,12 @@
         // ])
 
         var mapBounds = new L.LatLngBounds(
-            map.unproject([1, 63900], 8),
-            map.unproject([63900, 1], 8));
+            map.unproject([1, imageSquareSize], 8),
+            map.unproject([imageSquareSize, 1], 8));
 
         // map.setMaxBounds([
-        //     map.unproject([1, 63900], 8),
-        //     map.unproject([63900, 1], 8)
+        //     map.unproject([1, imageSquareSize], 8),
+        //     map.unproject([imageSquareSize, 1], 8)
         // ])
 
         var markersCanvas = new L.MarkersCanvas();
@@ -251,9 +251,9 @@
         map.getPane('bkgPane').style.zIndex = 1;
         const background = [
             [0, 0],
-            [0, 63900],
-            [63900, 63900],
-            [63900, 0],
+            [0, imageSquareSize],
+            [imageSquareSize, imageSquareSize],
+            [imageSquareSize, 0],
             [0, 0]
         ];
         L.polygon(background.map(c => {
@@ -272,9 +272,9 @@
         //MAP border 
         const border = [
             [0, 0],
-            [0, 63900],
-            [63900, 63900],
-            [63900, 0],
+            [0, imageSquareSize],
+            [imageSquareSize, imageSquareSize],
+            [imageSquareSize, 0],
             [0, 0]
         ];
         const unpCoords = border.map(c => {
@@ -387,8 +387,8 @@
         map.on("dragend", e => {
 
             let { lat, lng } = map.getCenter()
-            console.log('map.unproject([1, 63900], 8)', map.unproject([1, 63900], 8));
-            console.log('map.unproject([63900, 1], 8)', map.unproject([63900, 1], 8));
+            console.log('map.unproject([1, imageSquareSize], 8)', map.unproject([1, imageSquareSize], 8));
+            console.log('map.unproject([imageSquareSize, 1], 8)', map.unproject([imageSquareSize, 1], 8));
             console.log('', lat, lng);
 
 
@@ -467,30 +467,22 @@
                 .then(data => data.json())
                 .then(data => {
                     console.log('fetchGroups:', data);
-
-
                     data.map(item => {
-
                         const color = item.color
                         const coords = idToCoords.filter(id => item.token_ids.includes(+id[0]))
-
                         const _group = []
                         coords.map(rowCol => {
-
                             const [r, c] = rowCol[1].split(",").map(n => Number(n))
                             const _coords = getCoordsByRowCol(r, c);
                             const _poly = createCoordinatesByXY(_coords, true)
                             _group.push(_poly)
                         })
-
                         const _flatGroup = _group.flat();
                         const _topLeftCorner = findTopLeftCorner(_flatGroup)
-
                         const topMarker = addMarkerToGroup({
                             topLeft: _topLeftCorner,
                             logo: item.logo_url
                         })
-
                         drawPolygon(hull(_flatGroup), color)
                     })
                 })
@@ -538,10 +530,27 @@
                     drawPolygon(poly)
                     var polygon = turf.polygon([poly.map(i => unproject(i))]);
                     var center = turf.centerOfMass(polygon);
-                    map.setView(center.geometry.coordinates.reverse(), 8)
+                    //map.setView(center.geometry.coordinates.reverse(), 8)
+
+                    flyToCoordsAndZoom(center.geometry.coordinates.reverse(), 8)
                 }
             }
         });
+
+        function flyToCoordsAndZoom(coords, zoom) {
+
+            map.flyTo(coords, 5, {
+                animate: true,
+                duration: 4.5
+            });
+
+            map.once("moveend", () => {
+                map.flyTo(coords, zoom, {
+                    animate: true,
+                    duration: 2.5
+                });
+            })
+        }
 
         //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
         //drawPolygon(createCoordinatesByClick(rowColToCoords([18, -6])))
