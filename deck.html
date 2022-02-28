@@ -136,6 +136,14 @@
             background-size: 155px 160px; */
         }
 
+        .corner-select-dot {
+            width: 1px;
+            height: 1px;
+            background-color: #91d5e4;
+            padding: 0px;
+            margin: 0px;
+        }
+
         .text-labels {
             font-size: 14px;
             color: white;
@@ -284,7 +292,7 @@
 
         //DRAW YELLOW BORDER
         const centerPoly = createCoordinatesByXY(getCoordsByRowCol(0, 0), true)
-        drawPolygon(centerPoly, "yellow", true)
+        drawPolygon({ coords: centerPoly, color: "yellow", dashArray: true, corners: false })
 
 
         //create  NET
@@ -371,7 +379,10 @@
 
             if (!getIdByCoordinates(x, y)) return;
 
-            drawPolygon(coords)
+            drawPolygon({
+                coords,
+                corners: true
+            })
 
             selected.push(createCoordinatesByXY([x, y], false))
             //selectedOffset.push(createCoordinatesByXY([x, y], true))
@@ -422,7 +433,7 @@
                     const filteredSquares = items.map(item => {
                         const coords = rowColToCoords([item.x, item.y]);
                         const pCoords = createCoordinatesByXY(coords);
-                        allPolygons.push(drawPolygon(pCoords, "yellow"))
+                        allPolygons.push(drawPolygon({ coords: pCoords, color: "yellow" }))
                         return `${item.x}|${item.y}`
                     })
 
@@ -482,7 +493,7 @@
                             topLeft: _topLeftCorner,
                             logo: item.logo_url
                         })
-                        drawPolygon(hull(_flatGroup), color)
+                        drawPolygon({ coords: hull(_flatGroup), color })
                     })
                 })
 
@@ -526,7 +537,7 @@
                     const [r, c] = rowCol[1].split(",").map(rc => +rc)
                     const [x, y] = getCoordsByRowCol(r, c);
                     const poly = createCoordinatesByXY([x, y], true)
-                    drawPolygon(poly)
+                    drawPolygon({ coords: poly })
                     var polygon = turf.polygon([poly.map(i => unproject(i))]);
                     var center = turf.centerOfMass(polygon);
                     //map.setView(center.geometry.coordinates.reverse(), 8)
@@ -710,13 +721,37 @@
         //     }
         // }
 
-        function drawPolygon(coords, color = "white", dashArray = false) {
+        function drawPolygon({
+            coords,
+            color = "white",
+            dashArray = false,
+            corners = false
+        }) {
+
+            console.log('coords', coords);
+
             const unpCoords = coords.map(c => {
                 return rc.unproject(c)
             })
 
+
+            if (corners) {
+                const cornerMarkers = unpCoords.map(c => {
+                    return L.marker(c, {
+                        icon: L.divIcon({
+                            className: 'corner-select-dot',   // Set class for CSS styling
+                            html: "",
+                            iconSize: new L.Point(7, 7),
+                        }),
+                        zIndexOffset: 1000
+                    }).addTo(map)
+                })
+            }
+
+
             const polygon = L.polygon(unpCoords, {
                 color,
+                weight: 5,
                 "fillOpacity": 0,
                 dashArray: dashArray ? '5,10' : '',
             });
