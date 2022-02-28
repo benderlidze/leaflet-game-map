@@ -369,6 +369,30 @@
 
         map.on("zoomend", () => {
             zoom.innerHTML = ' zoom:' + map.getZoom()
+
+            const currentZoom = map.getZoom();
+            let lineWidth = 1;
+            switch (currentZoom) {
+                case 5:
+                    lineWidth = 1;
+                    break;
+                case 6:
+                    lineWidth = 2;
+                    break;
+                case 7:
+                    lineWidth = 3;
+                    break;
+                case 8:
+                    lineWidth = 3;
+                    break;
+            }
+
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Polygon) {
+                    layer.setStyle({ weight: lineWidth });
+                }
+            });
+
         })
 
         map.on("click", e => {
@@ -493,36 +517,41 @@
                             topLeft: _topLeftCorner,
                             logo: item.logo_url
                         })
-                        drawPolygon({ coords: hull(_flatGroup), color })
+
+                        //remove points on the straignt line
+                        console.log('_flatGroup', _flatGroup);
+                        const filteredGroup = removeInnerPoints(hull(_flatGroup, 10));
+
+                        drawPolygon({ coords: filteredGroup, color, corners: true })
                     })
                 })
 
             //find coords 
-            const ids = [2196, 1684, 2021, 1658]
-            const coords = idToCoords.filter(item => ids.includes(+item[0]))
-            console.log('coords', coords);
+            // const ids = [2196, 1684, 2021, 1658]
+            // const coords = idToCoords.filter(item => ids.includes(+item[0]))
+            // console.log('coords', coords);
 
-            if (coords && coords.length > 0) {
+            // if (coords && coords.length > 0) {
 
-                const polygons = coords.map(coord => {
-                    const [row, col] = coord[1].split(",")
-                    const square = getCoordsByRowCol(row, col)
-                    const polygonCoords = createCoordinatesByXY(square, false)
-                    const unpCoords = polygonCoords.map(c => {
-                        return unproject(c)
-                    })
-                    const poly = turf.polygon([unpCoords])
-                    return poly
-                })
+            //     const polygons = coords.map(coord => {
+            //         const [row, col] = coord[1].split(",")
+            //         const square = getCoordsByRowCol(row, col)
+            //         const polygonCoords = createCoordinatesByXY(square, false)
+            //         const unpCoords = polygonCoords.map(c => {
+            //             return unproject(c)
+            //         })
+            //         const poly = turf.polygon([unpCoords])
+            //         return poly
+            //     })
 
-                // const union = polygons.reduce((join, poly) => {
-                //     return turf.union(join, poly);
-                // })
+            //     // const union = polygons.reduce((join, poly) => {
+            //     //     return turf.union(join, poly);
+            //     // })
 
 
-                // const collection = turf.featureCollection(polygons)
-                // console.log('collection', JSON.stringify(union));
-            }
+            //     // const collection = turf.featureCollection(polygons)
+            //     // console.log('collection', JSON.stringify(union));
+            // }
 
         })
 
@@ -537,7 +566,7 @@
                     const [r, c] = rowCol[1].split(",").map(rc => +rc)
                     const [x, y] = getCoordsByRowCol(r, c);
                     const poly = createCoordinatesByXY([x, y], true)
-                    drawPolygon({ coords: poly })
+                    drawPolygon({ coords: poly, corners: true })
                     var polygon = turf.polygon([poly.map(i => unproject(i))]);
                     var center = turf.centerOfMass(polygon);
                     //map.setView(center.geometry.coordinates.reverse(), 8)
@@ -546,6 +575,32 @@
                 }
             }
         });
+
+        function removeInnerPoints(arr) {
+
+            if (arr.length <= 5) return;
+
+            for (let index = 0; index < arr.length; index++) {
+                const prev = arr[index - 1];
+                const curr = arr[index];
+                const next = arr[index + 1];
+
+                if (!prev) continue;
+                if (!next) continue;
+
+                if (
+                    (curr[0] === prev[0] && curr[0] === next[0])
+                    ||
+                    (curr[1] === prev[1] && curr[1] === next[1])
+                ) {
+                    //remove this point
+                    arr.splice(index, 1)
+                    removeInnerPoints(arr)
+                }
+            }
+
+            return arr;
+        }
 
         function flyToCoordsAndZoom(coords, zoom) {
 
@@ -728,12 +783,9 @@
             corners = false
         }) {
 
-            console.log('coords', coords);
-
             const unpCoords = coords.map(c => {
                 return rc.unproject(c)
             })
-
 
             if (corners) {
                 const cornerMarkers = unpCoords.map(c => {
@@ -741,17 +793,16 @@
                         icon: L.divIcon({
                             className: 'corner-select-dot',   // Set class for CSS styling
                             html: "",
-                            iconSize: new L.Point(7, 7),
+                            iconSize: new L.Point(4, 4),
                         }),
                         zIndexOffset: 1000
                     }).addTo(map)
                 })
             }
 
-
             const polygon = L.polygon(unpCoords, {
                 color,
-                weight: 5,
+                weight: 2,
                 "fillOpacity": 0,
                 dashArray: dashArray ? '5,10' : '',
             });
