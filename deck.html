@@ -608,6 +608,9 @@
 
         function flyToCoordsAndZoom(coords, zoom) {
 
+            //hide all geometry
+            showHideAllPolygons(false)
+
             map.flyTo(coords, 5, {
                 animate: true,
                 duration: 4.5
@@ -618,7 +621,28 @@
                     animate: true,
                     duration: 2.5
                 });
+
+                map.once("moveend", () => {
+                    showHideAllPolygons(true)
+                })
             })
+        }
+
+        function showHideAllPolygons(display = true) {
+            console.log('SHOWHIDE',);
+            //hide deck
+            const dLayers = display ? [new deck.PolygonLayer({ ...deckNet })] : []
+            console.log('layers', display, dLayers);
+            deckLayer.setProps({
+                layers: dLayers
+            });
+
+
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Polygon) {
+                    layer.setStyle({ opacity: display ? 1 : 0 });
+                }
+            });
         }
 
         //drawPolygon(createCoordinatesByClick(rowColToCoords([-1, -1])))
