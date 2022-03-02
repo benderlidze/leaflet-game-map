@@ -181,8 +181,11 @@
     <button id="fetchData">API test</button>
     <button id="clearData">Clear</button>
     <script>
+
         const centerCell = 39;
         const imageSquareSize = 71100;
+        const cellSideSize = 960
+
         const tokenId = document.getElementById("tokenId")
         const categories = document.getElementById("categories")
         const fetchGroups = document.getElementById("fetchGroups")
@@ -271,8 +274,8 @@
             return rc.unproject(c)
         }), { weight: 0, color: '#91d5e4', fillOpacity: 1, pane: 'bkgPane' }).addTo(map);
 
-        //const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/tiles/{z}/{x}/{y}.png', {
-        const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
+        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/{z}/{x}/{y}.png', {
+            //const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
             bounds: mapBounds
@@ -311,8 +314,8 @@
                 if (y < 4) continue;
                 if (y > 74) continue;
 
-                const x1 = x * 900
-                const y1 = y * 900
+                const x1 = x * cellSideSize
+                const y1 = y * cellSideSize
 
                 const row = - 35 + x;
                 const col = 35 - y;
@@ -323,9 +326,9 @@
                         number: [x, y],
                         coords: [
                             unproject([x1, y1]),
-                            unproject([x1, y1 + 900]),
-                            unproject([x1 + 900, y1 + 900]),
-                            unproject([x1 + 900, y1]),
+                            unproject([x1, y1 + cellSideSize]),
+                            unproject([x1 + cellSideSize, y1 + cellSideSize]),
+                            unproject([x1 + cellSideSize, y1]),
                             unproject([x1, y1]),
                         ]
                     }
@@ -345,7 +348,7 @@
             stroked: true,
             filled: false,
             getLineColor: [78, 181, 204],
-            getFillColor: [255, 255, 255, 150],
+            getFillColor: [145, 213, 228, 125],
             getLineWidth: 1,
             lineWidthUnits: 'pixels',
         }
@@ -472,7 +475,7 @@
                     console.log('filteredSquares', filteredSquares);
 
                     //---------- update DECKGL ----------------
-                    /*
+
                     const newData = deckData.filter(sq => !filteredSquares.includes(sq.id));
                     console.log('newData', newData);
                     deckLayer.setProps({
@@ -484,7 +487,7 @@
                             })
                         ]
                     });
-                    */
+
                 })
 
         })
@@ -665,19 +668,19 @@
             const xPx = (bottom.x - top.x)
             const yPx = (bottom.x - top.x)
 
-            const xNum = Math.floor(xPx / 900) + 1
-            const yNum = Math.floor(yPx / 900) + 1
+            const xNum = Math.floor(xPx / cellSideSize) + 1
+            const yNum = Math.floor(yPx / cellSideSize) + 1
 
-            const topX = Math.floor(top.x / 900) * 900 + 900
-            const topY = Math.floor(top.y / 900) * 900 + 900
+            const topX = Math.floor(top.x / cellSideSize) * cellSideSize + cellSideSize
+            const topY = Math.floor(top.y / cellSideSize) * cellSideSize + cellSideSize
 
             const xyForCoords = []
 
             for (let indexX = -1; indexX < xNum; indexX++) {
                 for (let indexY = -1; indexY < yNum; indexY++) {
                     xyForCoords.push({
-                        x: topX + indexX * 900,
-                        y: topY + indexY * 900,
+                        x: topX + indexX * cellSideSize,
+                        y: topY + indexY * cellSideSize,
                     })
                 }
             }
@@ -708,8 +711,8 @@
                 x: img.x / 2, y: img.y / 2
             }
             const mapCoords = [
-                center.x + 900 * input[0],
-                center.y - 900 * input[1],
+                center.x + cellSideSize * input[0],
+                center.y - cellSideSize * input[1],
             ]
             return mapCoords
         }
@@ -720,8 +723,8 @@
                 x: img.x / 2, y: img.y / 2
             }
             const mapCoords = [
-                Math.floor((center.x - input[0]) / 900) * (-1),
-                Math.floor((center.y - input[1]) / 900),
+                Math.floor((center.x - input[0]) / cellSideSize) * (-1),
+                Math.floor((center.y - input[1]) / cellSideSize),
             ]
             return mapCoords
         }
@@ -753,20 +756,20 @@
 
         function createCoordinatesByXY([x1, y1], offset = true) {
             const innerOffset = offset ? 20 : 0
-            const x = Math.floor(x1 / 900) * 900
-            const y = Math.floor(y1 / 900) * 900
+            const x = Math.floor(x1 / cellSideSize) * cellSideSize
+            const y = Math.floor(y1 / cellSideSize) * cellSideSize
             return [
                 [x + innerOffset, y + innerOffset],
-                [x + 900 - innerOffset, y + innerOffset],
-                [x + 900 - innerOffset, y + 900 - innerOffset],
-                [x + innerOffset, y + 900 - innerOffset],
+                [x + cellSideSize - innerOffset, y + innerOffset],
+                [x + cellSideSize - innerOffset, y + cellSideSize - innerOffset],
+                [x + innerOffset, y + cellSideSize - innerOffset],
                 [x + innerOffset, y + innerOffset],
             ]
         }
 
         function getIdByCoordinates(x1, y1) {
-            const x = Math.floor(x1 / 900)
-            const y = Math.floor(y1 / 900)
+            const x = Math.floor(x1 / cellSideSize)
+            const y = Math.floor(y1 / cellSideSize)
             const row = - centerCell + x;
             const col = centerCell - y;
 
@@ -781,8 +784,8 @@
         }
 
         function getCoordsByRowCol(row, col) {
-            const x = (centerCell + Number(row)) * 900;
-            const y = (centerCell - Number(col)) * 900;
+            const x = (centerCell + Number(row)) * cellSideSize;
+            const y = (centerCell - Number(col)) * cellSideSize;
             return [x, y]
         }
 
