@@ -564,7 +564,9 @@
             if (event.keyCode === 13) {
                 event.preventDefault();
                 const token = tokenId.value
-                const rowCol = idToCoords.filter(id => +id[0] === +token).flat()
+                const rowCol = +token === 0 ? ['0', '0,0'] : idToCoords.filter(id => +id[0] === +token).flat()
+
+                console.log('rowCol', token, rowCol);
 
                 if (rowCol.length > 0) {
                     const [r, c] = rowCol[1].split(",").map(rc => +rc)
