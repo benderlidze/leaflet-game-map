@@ -407,7 +407,7 @@
 
             if (!getIdByCoordinates(x, y)) return;
 
-            drawPolygon({
+            const polygon = drawPolygon({
                 coords,
                 corners: true
             })
@@ -415,10 +415,14 @@
             selected.push(createCoordinatesByXY([x, y], false))
             //selectedOffset.push(createCoordinatesByXY([x, y], true))
 
-            const latLng = selected.map(poly => turf.polygon([poly.map(c => unproject(c))]))
+            //const latLng = selected.map(poly => turf.polygon([poly.map(c => unproject(c))]))
             //console.log('latLng', latLng);
-            const collection = turf.featureCollection(latLng);
-            //console.log('collection', JSON.stringify(collection));
+            //const collection = turf.featureCollection(latLng);
+            //center map on polygon 
+            console.log(" !!! ", polygon.lPoly.getCenter());
+
+            const polyCenter = polygon.lPoly.getCenter();
+            map.flyTo(polyCenter)
         })
 
         map.on("dragend zoomend", e => {
@@ -837,7 +841,11 @@
                 dashArray: dashArray ? '5,10' : '',
             });
             polygon.addTo(map);
-            return polygon;
+
+            return {
+                lPoly: polygon,
+                json: unpCoords
+            }
         }
 
         function unproject(arr) {
