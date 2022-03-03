@@ -224,7 +224,7 @@
         var map = L.map('map', {
             // crs: L.CRS.Simple,
             maxZoom: 8,
-            minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 6,
+            minZoom: dev ? 1 : mobileAndTabletCheck() ? 3 : 5,
             zoomControl: false,
             //preferCanvas: true,
             noWrap: true,
@@ -414,7 +414,7 @@
             let lineWidth = 1;
             switch (currentZoom) {
                 case 5:
-                    lineWidth = 1;
+                    lineWidth = 2;
                     break;
                 case 6:
                     lineWidth = 2;
