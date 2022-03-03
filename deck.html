@@ -275,7 +275,7 @@
         }), { weight: 0, color: '#91d5e4', fillOpacity: 1, pane: 'bkgPane' }).addTo(map);
 
         //const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/{z}/{x}/{y}.png', {
-          const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
+        const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
             bounds: mapBounds
@@ -372,7 +372,40 @@
             const cx = x + offset.x
             const cy = y + offset.y
             coords.innerHTML = `${cx} | ${cy}`
+
+            highlightCell(x, y)
+
         })
+
+
+
+        let hoverPoly;
+        let currCell;
+        function highlightCell(x, y) {
+
+
+            const coords = createCoordinatesByXY([x, y])
+            if (!getIdByCoordinates(x, y)) return;
+            if (+currCell === +getIdByCoordinates(x, y)[0]) return; // it is the same spot, do not redraw he image 
+
+            if (hoverPoly) hoverPoly.remove();
+            currCell = +getIdByCoordinates(x, y)[0]
+
+
+            const ne = rc.unproject(coords[0])
+            const sw = rc.unproject(coords[2])
+
+            hoverPoly = L.imageOverlay(
+                'img/selectionMarqee.gif', [
+                sw,
+                ne
+            ], {
+                opacity: 1
+            })
+                .addTo(map)
+                .bringToFront()
+
+        }
 
         map.on("zoomend", () => {
             zoom.innerHTML = ' zoom:' + map.getZoom()
@@ -412,7 +445,8 @@
 
             const polygon = drawPolygon({
                 coords,
-                corners: true
+                corners: true,
+                dashArray: false
             })
 
             selected.push(createCoordinatesByXY([x, y], false))
@@ -468,7 +502,7 @@
                     const filteredSquares = items.map(item => {
                         const coords = rowColToCoords([item.x, item.y]);
                         const pCoords = createCoordinatesByXY(coords);
-                        allPolygons.push(drawPolygon({ coords: pCoords, color: "yellow" }))
+                        allPolygons.push(drawPolygon({ coords: pCoords, color: "yellow", dashArray: false }))
                         return `${item.x}|${item.y}`
                     })
 
@@ -775,7 +809,7 @@
 
             const id = idToCoords.find(i => i[1] === `${row},${col}`)
 
-            if (id.length === 0) return false;
+            if (!id || id.length === 0) return false;
 
             console.log('[', row, ",", col, ']');
             console.log('ID=', id[0]);
@@ -817,7 +851,8 @@
             coords,
             color = "white",
             dashArray = false,
-            corners = false
+            corners = false,
+            weight = 2
         }) {
 
             const unpCoords = coords.map(c => {
@@ -839,9 +874,9 @@
 
             const polygon = L.polygon(unpCoords, {
                 color,
-                weight: 2,
+                weight: weight,
                 "fillOpacity": 0,
-                dashArray: dashArray ? '5,10' : '',
+                dashArray: dashArray ? dashArray : '',
             });
             polygon.addTo(map);
 
