@@ -183,7 +183,7 @@
     <script>
 
         const centerCell = 39;
-        const imageSquareSize = 71100;
+        const imageSquareSize = 75840;
         const cellSideSize = 960
 
         const tokenId = document.getElementById("tokenId")
@@ -294,12 +294,12 @@
         const unpCoords = border.map(c => {
             return rc.unproject(c)
         })
-        L.polyline(unpCoords, { weight: 5, color: '#9c6029' }).addTo(map);
+        //L.polyline(unpCoords, { weight: 5, color: '#9c6029' }).addTo(map);
 
 
         //DRAW YELLOW BORDER
-        const centerPoly = createCoordinatesByXY(getCoordsByRowCol(0, 0), true)
-        drawPolygon({ coords: centerPoly, color: "yellow", dashArray: true, corners: false })
+        // const centerPoly = createCoordinatesByXY(getCoordsByRowCol(0, 0), true)
+        // drawPolygon({ coords: centerPoly, color: "yellow", dashArray: true, corners: false })
 
 
         //create  NET
@@ -347,7 +347,7 @@
             getPolygon: d => d,
             stroked: true,
             filled: false,
-            getLineColor: [78, 181, 204],
+            getLineColor: [78, 181, 204, 0],
             getFillColor: [145, 213, 228, 125],
             getLineWidth: 1,
             lineWidthUnits: 'pixels',
@@ -755,7 +755,7 @@
         }
 
         function createCoordinatesByXY([x1, y1], offset = true) {
-            const innerOffset = offset ? 20 : 0
+            const innerOffset = offset ? 30 : 0
             const x = Math.floor(x1 / cellSideSize) * cellSideSize
             const y = Math.floor(y1 / cellSideSize) * cellSideSize
             return [
