@@ -317,8 +317,8 @@
                 const x1 = x * cellSideSize
                 const y1 = y * cellSideSize
 
-                const row = - 35 + x;
-                const col = 35 - y;
+                const row = - 39 + x;
+                const col = 39 - y;
 
                 deckData.push(
                     {
@@ -348,7 +348,7 @@
             stroked: true,
             filled: false,
             getLineColor: [78, 181, 204, 0],
-            getFillColor: [145, 213, 228, 125],
+            getFillColor: [145, 213, 228, 225],
             getLineWidth: 1,
             lineWidthUnits: 'pixels',
         }
@@ -493,7 +493,7 @@
         })
         clearData.addEventListener("click", () => {
             console.log('clear data', allPolygons);
-            allPolygons.forEach(poly => poly.remove())
+            allPolygons.forEach(poly => poly.lPoly.remove())
 
             deckLayer.setProps({
                 layers: [
