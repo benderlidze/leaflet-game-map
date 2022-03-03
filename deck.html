@@ -274,8 +274,8 @@
             return rc.unproject(c)
         }), { weight: 0, color: '#91d5e4', fillOpacity: 1, pane: 'bkgPane' }).addTo(map);
 
-        const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/{z}/{x}/{y}.png', {
-            //const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
+        //const tileLayer = L.tileLayer('https://serg.one/leaflet-map-tiles/{z}/{x}/{y}.png', {
+          const tileLayer = L.tileLayer('https://d3cs93jz3t97cc.cloudfront.net/tiles/{z}/{x}/{y}.png', {
             noWrap: true,
             preferCanvas: true,
             bounds: mapBounds
