@@ -384,7 +384,7 @@
         function highlightCell(x, y) {
 
 
-            const coords = createCoordinatesByXY([x, y])
+            const coords = createCoordinatesByXY([x, y], -30)
             if (!getIdByCoordinates(x, y)) return;
             if (+currCell === +getIdByCoordinates(x, y)[0]) return; // it is the same spot, do not redraw he image 
 
@@ -788,8 +788,8 @@
             return sort[0]
         }
 
-        function createCoordinatesByXY([x1, y1], offset = true) {
-            const innerOffset = offset ? 30 : 0
+        function createCoordinatesByXY([x1, y1], offset = 30) {
+            const innerOffset = offset
             const x = Math.floor(x1 / cellSideSize) * cellSideSize
             const y = Math.floor(y1 / cellSideSize) * cellSideSize
             return [
