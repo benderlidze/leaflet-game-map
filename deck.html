@@ -383,15 +383,12 @@
         let currCell;
         function highlightCell(x, y) {
 
-
             const coords = createCoordinatesByXY([x, y], -30)
             if (!getIdByCoordinates(x, y)) return;
             if (+currCell === +getIdByCoordinates(x, y)[0]) return; // it is the same spot, do not redraw he image 
 
             if (hoverPoly) hoverPoly.remove();
             currCell = +getIdByCoordinates(x, y)[0]
-
-
             const ne = rc.unproject(coords[0])
             const sw = rc.unproject(coords[2])
 
@@ -439,26 +436,40 @@
             const c = rc.project(e.latlng);
             console.log('c', e.latlng, c);
             const { x, y } = c
-            const coords = createCoordinatesByXY([x, y])
+            const coords = createCoordinatesByXY([x, y], -30)
 
             if (!getIdByCoordinates(x, y)) return;
 
-            const polygon = drawPolygon({
-                coords,
-                corners: true,
-                dashArray: false
-            })
+            // const polygon = drawPolygon({
+            //     coords,
+            //     corners: true,
+            //     dashArray: false
+            // })
 
-            selected.push(createCoordinatesByXY([x, y], false))
+            //selected.push(createCoordinatesByXY([x, y], false))
             //selectedOffset.push(createCoordinatesByXY([x, y], true))
-
             //const latLng = selected.map(poly => turf.polygon([poly.map(c => unproject(c))]))
             //console.log('latLng', latLng);
             //const collection = turf.featureCollection(latLng);
             //center map on polygon 
-            console.log(" !!! ", polygon.lPoly.getCenter());
+            //console.log(" !!! ", polygon.lPoly.getCenter());
 
-            const polyCenter = polygon.lPoly.getCenter();
+
+            currCell = +getIdByCoordinates(x, y)[0]
+            const ne = rc.unproject(coords[0])
+            const sw = rc.unproject(coords[2])
+            const selectedPoly = L.imageOverlay(
+                'img/thumb_selectionFiltered.png', [
+                sw,
+                ne
+            ], {
+                opacity: 1
+            })
+                .addTo(map)
+                .bringToFront()
+
+            console.log('selectedPoly', selectedPoly);
+            const polyCenter = selectedPoly.getBounds().getCenter();
             map.flyTo(polyCenter)
         })
 
@@ -501,8 +512,25 @@
 
                     const filteredSquares = items.map(item => {
                         const coords = rowColToCoords([item.x, item.y]);
-                        const pCoords = createCoordinatesByXY(coords);
-                        allPolygons.push(drawPolygon({ coords: pCoords, color: "yellow", dashArray: false }))
+                        const pCoords = createCoordinatesByXY(coords, -30);
+
+                        //  allPolygons.push(drawPolygon({ coords: pCoords, color: "yellow", dashArray: false }))
+
+                        const currCell = +getIdByCoordinates(item.x, item.y)[0]
+                        const ne = rc.unproject(pCoords[0])
+                        const sw = rc.unproject(pCoords[2])
+                        const selectedPoly = L.imageOverlay(
+                            'img/thumb_selectionFiltered.png', [
+                            sw,
+                            ne
+                        ], {
+                            opacity: 1
+                        })
+                            .addTo(map)
+                            .bringToFront()
+
+                        allPolygons.push(selectedPoly)
+
                         return `${item.x}|${item.y}`
                     })
 
@@ -527,6 +555,7 @@
         })
         clearData.addEventListener("click", () => {
             console.log('clear data', allPolygons);
+            //allPolygons.forEach(poly => poly.lPoly.remove())
             allPolygons.forEach(poly => poly.lPoly.remove())
 
             deckLayer.setProps({
