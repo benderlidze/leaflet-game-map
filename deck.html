@@ -434,7 +434,6 @@
 
         map.on("click", e => {
             const c = rc.project(e.latlng);
-            console.log('c', e.latlng, c);
             const { x, y } = c
             const coords = createCoordinatesByXY([x, y], -30)
 
@@ -455,7 +454,7 @@
             //console.log(" !!! ", polygon.lPoly.getCenter());
 
 
-            currCell = +getIdByCoordinates(x, y)[0]
+            currCell = +getIdByCoordinates(x, y, true)[0]
             const ne = rc.unproject(coords[0])
             const sw = rc.unproject(coords[2])
             const selectedPoly = L.imageOverlay(
@@ -830,7 +829,7 @@
             ]
         }
 
-        function getIdByCoordinates(x1, y1) {
+        function getIdByCoordinates(x1, y1, debug = false) {
             const x = Math.floor(x1 / cellSideSize)
             const y = Math.floor(y1 / cellSideSize)
             const row = - centerCell + x;
@@ -840,8 +839,10 @@
 
             if (!id || id.length === 0) return false;
 
-            console.log('[', row, ",", col, ']');
-            console.log('ID=', id[0]);
+            if (debug) {
+                console.log('[', row, ",", col, ']');
+                console.log('ID=', id[0]);
+            }
 
             return id
         }
