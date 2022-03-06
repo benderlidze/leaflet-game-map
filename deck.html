@@ -484,6 +484,44 @@
             if (map.getZoom() > 5) {
                 drawCoordsInView()
             }
+
+            if (e.type === 'dragend') {
+
+                // const c = rc.project(map.getCenter());
+                // console.log('c', e.latlng, c);
+                // const { x, y } = c
+                // const [row, col] = getIdByCoordinates(x, y)[1].split(",")
+
+                // console.log('row,col', row, col);
+
+
+                const center = [-75.84960937500001, 60.19615576604439] //lng lat
+                const user = map.getCenter()
+
+                var point1 = turf.point(center);
+                var point2 = turf.point([user.lng, user.lat]);
+                var bearing = turf.bearing(point1, point2);
+
+                let direction = "South"
+
+                if (bearing >= -45 && bearing < 45) {
+                    direction = "North"
+                }
+                if (bearing >= 45 && bearing < 135) {
+                    direction = "East"
+                }
+                if (bearing > -135 && bearing < -45) {
+                    direction = "West"
+                }
+
+                console.log('direction', direction);
+
+            }
+
+
+
+
+
         })
 
         // map.on("dragend", e => {
