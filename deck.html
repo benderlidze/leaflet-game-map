@@ -491,10 +491,7 @@
                 // console.log('c', e.latlng, c);
                 // const { x, y } = c
                 // const [row, col] = getIdByCoordinates(x, y)[1].split(",")
-
                 // console.log('row,col', row, col);
-
-
                 const center = [-75.84960937500001, 60.19615576604439] //lng lat
                 const user = map.getCenter()
 
@@ -514,12 +511,20 @@
                 }
                 console.log('direction', direction);
 
+
+                const { lat, lng } = user
+                const { x, y } = rc.project([lat, lng])
+                const { x: cx, y: cy } = rc.project(center.reverse())
+
+                //console.log('x,y,', x, y,);
+                //console.log('Center cx,cy', cx, cy);
+
+                const x1 = Math.abs(cx - x)
+                const y1 = Math.abs(cy - y)
+                console.log('x1,y1', x1, y1);
+
+
             }
-
-
-
-
-
         })
 
         // map.on("dragend", e => {
