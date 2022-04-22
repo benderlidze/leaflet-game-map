@@ -530,6 +530,39 @@
                 const _y1 = Math.abs(_cy - _y)
                 console.log('_x1,_y1', _x1, _y1);
 
+
+                var polylinePoints = [
+                    [lat, lng],
+                    [60.25071594150479, -75.91552734375001]
+                ];
+
+                var polyline = new L.polyline(polylinePoints)
+                var rectangle = new L.Rectangle(map.getBounds())
+                var intersection = turf.lineIntersect(rectangle.toGeoJSON(), polyline.toGeoJSON());
+
+                try {
+                    const intrsct = intersection.features[0].geometry.coordinates.reverse()
+                    const intXY = map.project(intrsct, map.getZoom())
+
+                    const intrX = Math.abs(_cx - intXY.x)
+                    const intrY = Math.abs(_cy - intXY.y)
+
+                    // var circle = L.circle(intrsct, {
+                    //     color: 'red',
+                    //     fillColor: '#f03',
+                    //     fillOpacity: 0.5,
+                    //     radius: 500
+                    // }).addTo(map);
+
+
+                    //console.log('---intrXY---', intXY);
+                    console.log('intrX intrY', intrX, intrY);
+
+
+                } catch (error) {
+
+                }
+
             }
         })
 
