@@ -525,27 +525,45 @@
 
 
                 const { x: _x, y: _y } = map.project([lat, lng], map.getZoom())
-                const { x: _cx, y: _cy } = map.project([60.25071594150479, -75.91552734375001], map.getZoom())
+                const { x: _cx, y: _cy } = map.project([60.196156, -75.849609], map.getZoom())
                 const _x1 = Math.abs(_cx - _x)
                 const _y1 = Math.abs(_cy - _y)
                 console.log('_x1,_y1', _x1, _y1);
 
 
-                var polylinePoints = [
+                const polylinePoints = [
                     [lat, lng],
-                    [60.25071594150479, -75.91552734375001]
+                    [60.196156, -75.849609]
                 ];
 
-                var polyline = new L.polyline(polylinePoints)
-                var rectangle = new L.Rectangle(map.getBounds())
-                var intersection = turf.lineIntersect(rectangle.toGeoJSON(), polyline.toGeoJSON());
+                const polylinePointsU = [
+                    map.project([lat, lng]),
+                    map.project([60.196156, -75.849609])
+                ];
+                console.log('polylinePointsU', polylinePointsU);
+
+
+                const polyline = L.polyline(polylinePoints);
+                const rectangle = new L.Rectangle(map.getBounds(), { fillOpacity: 0 })
+
+                const intersection = turf.lineIntersect(
+                    rectangle.toGeoJSON(),
+                    polyline.toGeoJSON()
+                );
+
+
+                console.log(JSON.stringify(polyline.toGeoJSON()) + "," + JSON.stringify(rectangle.toGeoJSON()))
+                console.log(intersection)
 
                 try {
                     const intrsct = intersection.features[0].geometry.coordinates.reverse()
                     const intXY = map.project(intrsct, map.getZoom())
+                    console.log('intrsct', intrsct);
 
                     const intrX = Math.abs(_cx - intXY.x)
                     const intrY = Math.abs(_cy - intXY.y)
+
+                    // var marker = L.marker(intrsct).addTo(map);
 
                     // var circle = L.circle(intrsct, {
                     //     color: 'red',
@@ -554,14 +572,29 @@
                     //     radius: 500
                     // }).addTo(map);
 
+                    const svgIcon = L.divIcon({
+                        html: `
+                                <svg width="20" height="20">
+                                    <rect x="0" y="0" width="20" height="20"
+                                    style="fill:black;" />
+                                    </svg>`,
+                        className: "",
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10],
+                    });
+                    L.marker(intrsct, { icon: svgIcon }).addTo(map);
+
+
 
                     //console.log('---intrXY---', intXY);
                     console.log('intrX intrY', intrX, intrY);
 
 
                 } catch (error) {
-
+                    console.log('error', error);
                 }
+
+
 
             }
         })
